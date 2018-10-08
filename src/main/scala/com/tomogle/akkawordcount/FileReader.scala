@@ -10,12 +10,14 @@ import com.tomogle.akkawordcount.LineWordCounter.CountWordsInLine
   *
   */
 object FileReader {
-  def props(lineWordCounterActor: ActorRef): Props = Props(new FileReader(lineWordCounterActor))
+  def props(lineWordCounterActorPath: String): Props = Props(new FileReader(lineWordCounterActorPath))
   final case class ReadFile(filePath: String)
 }
 
-class FileReader(lineWordCounterActor: ActorRef) extends Actor with ActorLogging {
+class FileReader(lineWordCounterActorPath: String) extends Actor with ActorLogging {
   import FileReader._
+
+  private val lineWordCounterActor = context.actorSelection(lineWordCounterActorPath)
 
   override def receive: Receive = {
     case ReadFile(filePath) =>

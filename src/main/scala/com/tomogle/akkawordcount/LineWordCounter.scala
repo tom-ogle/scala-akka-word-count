@@ -2,23 +2,21 @@ package com.tomogle.akkawordcount
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
-import akka.actor.ActorRef
 import akka.actor.Props
 import com.tomogle.akkawordcount.CountsAggregator.LineResults
 
 import scala.collection.mutable
 
-/**
-  *
-  */
 object LineWordCounter {
-  def props(aggregatorActor: ActorRef): Props = Props(new LineWordCounter(aggregatorActor))
+  def props(aggregatorActorPath: String): Props = Props(new LineWordCounter(aggregatorActorPath))
   final case class CountWordsInLine(line: String)
   val WhitespaceRegEx = "\\s+"
 }
 
-class LineWordCounter(aggregatorActor: ActorRef) extends Actor with ActorLogging {
+class LineWordCounter(aggregatorActorPath: String) extends Actor with ActorLogging {
   import LineWordCounter._
+
+  private val aggregatorActor = context.actorSelection(aggregatorActorPath)
 
   override def receive: Receive = {
     case CountWordsInLine(line) =>
@@ -27,6 +25,7 @@ class LineWordCounter(aggregatorActor: ActorRef) extends Actor with ActorLogging
       for (word <- words; lowercaseWord = word.toLowerCase()) {
         results(lowercaseWord) = results.getOrElse(lowercaseWord, 0) + 1
       }
-      aggregatorActor ! LineResults(results.toMap)
+      val immutableResult = results.toMap
+      aggregatorActor ! LineResults(immutableResult)
   }
 }

@@ -16,7 +16,7 @@ class FileReaderTest(_system: ActorSystem) extends TestKit(_system) with WordSpe
   "FileReader" should {
     "request all lines in a file be counted" in {
       val filePath = getClass.getClassLoader.getResource("simpletestfile.txt").getPath
-      val actorRef = TestActorRef(new FileReader(testActor))
+      val actorRef = TestActorRef(new FileReader(testActor.path.toString))
       actorRef ! ReadFile(filePath)
       expectMsg(CountWordsInLine("The quick brown fox"))
       expectMsg(CountWordsInLine("jumps over the lazy dog"))
