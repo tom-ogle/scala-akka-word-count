@@ -14,7 +14,7 @@ import scala.concurrent.duration._
   */
 object ExampleApp {
 
-  implicit val timeout: Timeout = Timeout(50 seconds)
+  implicit val timeout: Timeout = Timeout(5 seconds)
   implicit val ec: ExecutionContextExecutor = ExecutionContext.global
 
   def main(args: Array[String]): Unit = {
@@ -23,12 +23,12 @@ object ExampleApp {
     try {
       val operationID: Future[WordCountOperationID] = wordCount.submitFile(filePath)
       val results: Future[ResultReport] = operationID.flatMap(id => wordCount.awaitResult(id))
-      val resultReport: ResultReport = Await.result(results, 600 seconds)
+      val resultReport: ResultReport = Await.result(results, 5 seconds)
       for (entry <- resultReport.counts) {
         val (key, value) = entry
         println(s"$key: $value")
       }
-    } finally Await.result(wordCount.shutDown(), 500 seconds)
+    } finally Await.result(wordCount.shutDown(), 5 seconds)
   }
 
 }
