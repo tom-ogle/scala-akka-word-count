@@ -38,10 +38,9 @@ object WordCountMaster {
 class WordCountMaster() extends Actor with ActorLogging {
   import com.tomogle.akkawordcount.WordCountMaster._
 
-
-
   private val mappers = mutable.Map[WordCountOperationID, ActorRef]()
   private val reducers = mutable.Map[WordCountOperationID, ActorRef]()
+  private val resultWaiters = mutable.Map[WordCountOperationID, ActorRef]()
 
   override def receive: Receive = {
     case SubmitFileCommand(filePath) =>
@@ -66,12 +65,22 @@ class WordCountMaster() extends Actor with ActorLogging {
 
     case WordResultQuery(operationID, word) =>
       val reducer = reducers(operationID)
-      val resultWaiter = context.actorOf(ResultWaiter.props(), s"wait-${operationID.id}")
+      val waiterId = s"wait-${operationID.id}"
+      val resultWaiter = resultWaiters.getOrElse(operationID, {
+        val newResultwaiter = context.actorOf(ResultWaiter.props(), waiterId)
+        resultWaiters(operationID) = newResultwaiter
+        newResultwaiter
+      })
       resultWaiter ! WaitForWordCommand(operationID, word, sender(), reducer)
 
     case ResultQuery(operationID) =>
       val reducer = reducers(operationID)
-      val resultWaiter = context.actorOf(ResultWaiter.props(), s"wait-${operationID.id}")
+      val waiterId = s"wait-${operationID.id}"
+      val resultWaiter = resultWaiters.getOrElse(operationID, {
+        val newResultwaiter = context.actorOf(ResultWaiter.props(), waiterId)
+        resultWaiters(operationID) = newResultwaiter
+        newResultwaiter
+      })
       resultWaiter ! WaitForOperationCommand(operationID, sender(), reducer)
     // TODO CleanupOperation to reclaim memory in system for completed operations
   }

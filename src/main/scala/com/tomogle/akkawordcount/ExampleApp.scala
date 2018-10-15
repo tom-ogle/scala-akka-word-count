@@ -22,7 +22,7 @@ object ExampleApp {
     val wordCount = WordCount()
     try {
       val operationID: Future[WordCountOperationID] = wordCount.submitFile(filePath)
-      val results: Future[ResultReport] = operationID.flatMap(id => wordCount.awaitResult(id))
+      val results: Future[ResultReport] = operationID.flatMap(id => wordCount.result(id))
       val resultReport: ResultReport = Await.result(results, 5 seconds)
       for (entry <- resultReport.counts) {
         val (key, value) = entry

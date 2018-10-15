@@ -20,10 +20,10 @@ trait WordCount {
   def progressReport(operationID: WordCountOperationID)(implicit timeout: Timeout): Future[ProgressReport]
   // Get a progress report on word counts for a specific word for a single word count operation
   def progressReport(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordProgressReport]
-  // Await the final results of a word count for a single word count operation
-  def awaitResult(operationID: WordCountOperationID)(implicit timeout: Timeout): Future[ResultReport]
-  // Await the final results of a word count for a specific word count for a single word count operation
-  def awaitResult(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordResultReport]
+  // Get the final results of a word count for a single word count operation
+  def result(operationID: WordCountOperationID)(implicit timeout: Timeout): Future[ResultReport]
+  // Get the final results of a word count for a specific word count for a single word count operation
+  def result(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordResultReport]
   // Shutdown the WordCount system, when the future completes the WordCount system is shutdown
   def shutDown(): Future[Boolean]
 }
@@ -59,10 +59,10 @@ class WordCountImpl extends WordCount {
   override def progressReport(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordProgressReport] =
     (master ? WordProgressReportQuery(operationID, word)).mapTo[WordProgressReport]
 
-  override def awaitResult(operationID: WordCountOperationID)(implicit timeout: Timeout): Future[ResultReport] =
+  override def result(operationID: WordCountOperationID)(implicit timeout: Timeout): Future[ResultReport] =
     (master ? ResultQuery(operationID)).mapTo[ResultReport]
 
-  override def awaitResult(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordResultReport] =
+  override def result(operationID: WordCountOperationID, word: String)(implicit timeout: Timeout): Future[WordResultReport] =
     (master ? WordResultQuery(operationID, word)).mapTo[WordResultReport]
 
   override def shutDown(): Future[Boolean] = {
