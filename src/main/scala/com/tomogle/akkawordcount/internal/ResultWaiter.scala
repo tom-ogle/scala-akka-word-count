@@ -1,11 +1,15 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import com.tomogle.akkawordcount.WordCountReducer.ResultsAllIfFinishedQuery
-import com.tomogle.akkawordcount.WordCountReducer.ResultsWordIfFinishedQuery
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.internal.ResultWaiter.ProcessWaitingCommand
+import com.tomogle.akkawordcount.internal.ResultWaiter.WaitForOperationCommand
+import com.tomogle.akkawordcount.internal.ResultWaiter.WaitForWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.ResultsAllIfFinishedQuery
+import com.tomogle.akkawordcount.internal.WordCountReducer.ResultsWordIfFinishedQuery
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -22,7 +26,6 @@ object ResultWaiter {
 }
 
 class ResultWaiter() extends Actor with ActorLogging {
-  import com.tomogle.akkawordcount.ResultWaiter._
 
   private val waitingForWords = mutable.Set[(WordCountOperationID, String, ActorRef, ActorRef)]()
   private val waitingForOperations = mutable.Set[(WordCountOperationID, ActorRef, ActorRef)]()

@@ -1,4 +1,4 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import java.util.UUID
 
@@ -6,8 +6,10 @@ import akka.actor.ActorSystem
 import akka.testkit.TestActorRef
 import akka.testkit.TestKit
 import akka.testkit.TestProbe
-import com.tomogle.akkawordcount.WordCountReducer.ReduceWordCommand
-import com.tomogle.akkawordcount.WordCountReducer.WordCountWordProgressQuery
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.WordProgressReport
+import com.tomogle.akkawordcount.internal.WordCountReducer.ReduceWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.WordCountWordProgressQuery
 import org.scalatest.Matchers
 import org.scalatest.WordSpecLike
 

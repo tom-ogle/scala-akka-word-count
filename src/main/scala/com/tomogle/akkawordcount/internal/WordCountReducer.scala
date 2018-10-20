@@ -1,9 +1,20 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
+import com.tomogle.akkawordcount.ProgressReport
+import com.tomogle.akkawordcount.ResultReport
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.WordProgressReport
+import com.tomogle.akkawordcount.WordResultReport
+import com.tomogle.akkawordcount.internal.WordCountReducer.ReduceWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.ResultsAllIfFinishedQuery
+import com.tomogle.akkawordcount.internal.WordCountReducer.ResultsWordIfFinishedQuery
+import com.tomogle.akkawordcount.internal.WordCountReducer.SetTotalWordsCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.WordCountAllProgressQuery
+import com.tomogle.akkawordcount.internal.WordCountReducer.WordCountWordProgressQuery
 
 import scala.collection.mutable
 
@@ -32,7 +43,6 @@ object WordCountReducer {
 }
 
 class WordCountReducer() extends Actor with ActorLogging {
-  import com.tomogle.akkawordcount.WordCountReducer._
 
   // TODO Currently WordCountOperationID is unneeded here as WordCountMaster spawns one reducer per operation
   private val wordCounts = mutable.Map[WordCountOperationID, mutable.Map[String, Int]]()

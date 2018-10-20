@@ -1,18 +1,19 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.testkit.TestActorRef
 import akka.testkit.TestKit
-import com.tomogle.akkawordcount.FileReaderWordCountMapper.ReadWordsFromFileCommand
-import com.tomogle.akkawordcount.WordCountReducer.ReduceWordCommand
-import com.tomogle.akkawordcount.WordCountReducer.SetTotalWordsCommand
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.internal.FullFileReaderMapper.ReadWordsFromFileCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.ReduceWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.SetTotalWordsCommand
 import org.scalatest.Matchers
 import org.scalatest.WordSpecLike
 
 
-class FileReaderWordCountMapperTest(_system: ActorSystem) extends TestKit(_system) with WordSpecLike with Matchers {
+class FullFileReaderMapperTest(_system: ActorSystem) extends TestKit(_system) with WordSpecLike with Matchers {
 
   def this() = this(ActorSystem())
 
@@ -21,7 +22,7 @@ class FileReaderWordCountMapperTest(_system: ActorSystem) extends TestKit(_syste
   "FileReaderWordCountMapper" should {
     "read all words in a file" in {
       val filePath = getClass.getClassLoader.getResource("simpletestfile.txt").getPath
-      val actorRef = TestActorRef(new FileReaderWordCountMapper(testActor))
+      val actorRef = TestActorRef(new FullFileReaderMapper(testActor))
       val operationID = WordCountOperationID(UUID.randomUUID())
       actorRef ! ReadWordsFromFileCommand(operationID, filePath)
 

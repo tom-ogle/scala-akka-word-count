@@ -1,4 +1,4 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import java.util.UUID
 
@@ -6,10 +6,12 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import com.tomogle.akkawordcount.ResultWaiter.WaitForOperationCommand
-import com.tomogle.akkawordcount.ResultWaiter.WaitForWordCommand
-import com.tomogle.akkawordcount.WordCountReducer.WordCountAllProgressQuery
-import com.tomogle.akkawordcount.WordCountReducer.WordCountWordProgressQuery
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.internal.FullFileReaderMapper.ReadWordsFromFileCommand
+import com.tomogle.akkawordcount.internal.ResultWaiter.WaitForOperationCommand
+import com.tomogle.akkawordcount.internal.ResultWaiter.WaitForWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.WordCountAllProgressQuery
+import com.tomogle.akkawordcount.internal.WordCountReducer.WordCountWordProgressQuery
 
 import scala.collection.mutable
 
@@ -33,10 +35,14 @@ object WordCountMaster {
   final case class WordResultQuery(operationID: WordCountOperationID, word: String)
   // Request the result for a particular operation
   final case class ResultQuery(operationID: WordCountOperationID)
+
+  val FileReaderMapperDispatcherName = "file-reader-dispatcher"
+  val ReducersDispatchername = "reducers-dispatcher"
+  val ResultWaitersDispatcherName = "result-waiters-dispatcher"
 }
 
 class WordCountMaster() extends Actor with ActorLogging {
-  import com.tomogle.akkawordcount.WordCountMaster._
+  import WordCountMaster._
 
   private val mappers = mutable.Map[WordCountOperationID, ActorRef]()
   private val reducers = mutable.Map[WordCountOperationID, ActorRef]()
@@ -44,12 +50,12 @@ class WordCountMaster() extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case SubmitFileCommand(filePath) =>
-      import com.tomogle.akkawordcount.FileReaderWordCountMapper.ReadWordsFromFileCommand
+
       val operationID = WordCountOperationID(UUID.randomUUID())
       // TODO: Distribute work over more than one reducer, route using hash of word / ID?
-      val reducer = context.actorOf(WordCountReducer.props())
+      val reducer = context.actorOf(WordCountReducer.props().withDispatcher(ReducersDispatchername))
       // TODO: Distribute work over multiple mappers
-      val mapper = context.actorOf(FileReaderWordCountMapper.props(reducer))
+      val mapper = context.actorOf(FullFileReaderMapper.props(reducer).withDispatcher(FileReaderMapperDispatcherName))
       reducers(operationID) = reducer
       mappers(operationID) = mapper
       mapper ! ReadWordsFromFileCommand(operationID, filePath)
@@ -67,7 +73,7 @@ class WordCountMaster() extends Actor with ActorLogging {
       val reducer = reducers(operationID)
       val waiterId = s"wait-${operationID.id}"
       val resultWaiter = resultWaiters.getOrElse(operationID, {
-        val newResultwaiter = context.actorOf(ResultWaiter.props(), waiterId)
+        val newResultwaiter = context.actorOf(ResultWaiter.props().withDispatcher(ResultWaitersDispatcherName), waiterId)
         resultWaiters(operationID) = newResultwaiter
         newResultwaiter
       })
@@ -77,7 +83,7 @@ class WordCountMaster() extends Actor with ActorLogging {
       val reducer = reducers(operationID)
       val waiterId = s"wait-${operationID.id}"
       val resultWaiter = resultWaiters.getOrElse(operationID, {
-        val newResultwaiter = context.actorOf(ResultWaiter.props(), waiterId)
+        val newResultwaiter = context.actorOf(ResultWaiter.props().withDispatcher(ResultWaitersDispatcherName), waiterId)
         resultWaiters(operationID) = newResultwaiter
         newResultwaiter
       })

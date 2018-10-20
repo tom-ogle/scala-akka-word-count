@@ -46,7 +46,7 @@ final case class WordResultReport(operationID: WordCountOperationID, word: Strin
 class WordCountImpl extends WordCount {
 
   private val system = ActorSystem("Word-count")
-  import WordCountMaster._
+  import com.tomogle.akkawordcount.internal.WordCountMaster._
   private val master = system.actorOf(props(), "word-count-master")
 
 

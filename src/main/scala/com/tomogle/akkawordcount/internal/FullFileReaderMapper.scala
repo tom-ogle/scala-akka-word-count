@@ -1,23 +1,24 @@
-package com.tomogle.akkawordcount
+package com.tomogle.akkawordcount.internal
 
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import com.tomogle.akkawordcount.WordCountReducer.ReduceWordCommand
-import com.tomogle.akkawordcount.WordCountReducer.SetTotalWordsCommand
+import com.tomogle.akkawordcount.WordCountOperationID
+import com.tomogle.akkawordcount.internal.WordCountReducer.ReduceWordCommand
+import com.tomogle.akkawordcount.internal.WordCountReducer.SetTotalWordsCommand
 
 /**
   * An actor that reads words from a file and sends them to a provided actor
   */
-object FileReaderWordCountMapper {
-  def props(wordConsumerActorRef: ActorRef): Props = Props(new FileReaderWordCountMapper(wordConsumerActorRef))
+object FullFileReaderMapper {
+  def props(wordConsumer: ActorRef): Props = Props(new FullFileReaderMapper(wordConsumer))
   final case class ReadWordsFromFileCommand(operationId: WordCountOperationID, filePath: String)
   private val WhitespaceRegEx = "\\s+"
 }
 
-class FileReaderWordCountMapper(wordConsumerActorRef: ActorRef) extends Actor with ActorLogging {
-  import FileReaderWordCountMapper._
+class FullFileReaderMapper(consumer: ActorRef) extends Actor with ActorLogging {
+  import FullFileReaderMapper._
 
   override def receive: Receive = {
     case ReadWordsFromFileCommand(operationId, filePath) =>
@@ -29,10 +30,10 @@ class FileReaderWordCountMapper(wordConsumerActorRef: ActorRef) extends Actor wi
         for (word <- words; lowercaseWord = word.toLowerCase()) {
           // We normalise all words to lowercase
           // TODO: Handle punctuation, etc.
-          wordConsumerActorRef ! ReduceWordCommand(operationId, lowercaseWord)
+          consumer ! ReduceWordCommand(operationId, lowercaseWord)
           countOfAllWords += 1
         }
       }
-      wordConsumerActorRef ! SetTotalWordsCommand(operationId, countOfAllWords)
+      consumer ! SetTotalWordsCommand(operationId, countOfAllWords)
   }
 }
