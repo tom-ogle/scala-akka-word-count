@@ -6,6 +6,9 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
+import akka.routing.ConsistentHashingPool
+import akka.routing.ConsistentHashingRoutingLogic
+import akka.routing.Router
 import com.tomogle.akkawordcount.WordCountOperationID
 import com.tomogle.akkawordcount.internal.FullFileReaderMapper.ReadWordsFromFileCommand
 import com.tomogle.akkawordcount.internal.ResultWaiter.WaitForOperationCommand
@@ -45,49 +48,45 @@ class WordCountMaster() extends Actor with ActorLogging {
   import WordCountMaster._
 
   private val mappers = mutable.Map[WordCountOperationID, ActorRef]()
-  private val reducers = mutable.Map[WordCountOperationID, ActorRef]()
   private val resultWaiters = mutable.Map[WordCountOperationID, ActorRef]()
+
+  // TODO: Set supervisor strategy
+  private val reducersRouter = context.actorOf(
+    ConsistentHashingPool(nrOfInstances = 5).props(WordCountReducer.props()).withDispatcher(ReducersDispatchername)
+  )
 
   override def receive: Receive = {
     case SubmitFileCommand(filePath) =>
 
       val operationID = WordCountOperationID(UUID.randomUUID())
-      // TODO: Distribute work over more than one reducer, route using hash of word / ID?
-      val reducer = context.actorOf(WordCountReducer.props().withDispatcher(ReducersDispatchername))
-      // TODO: Distribute work over multiple mappers
-      val mapper = context.actorOf(FullFileReaderMapper.props(reducer).withDispatcher(FileReaderMapperDispatcherName))
-      reducers(operationID) = reducer
+      val mapper = context.actorOf(FullFileReaderMapper.props(reducersRouter).withDispatcher(FileReaderMapperDispatcherName))
       mappers(operationID) = mapper
       mapper ! ReadWordsFromFileCommand(operationID, filePath)
       sender() ! operationID
 
     case WordProgressReportQuery(operationID, word) =>
-      val reducer = reducers(operationID)
-      reducer ! WordCountWordProgressQuery(operationID, word, sender())
+      reducersRouter ! WordCountWordProgressQuery(operationID, word, sender())
 
     case ProgressReportQuery(operationID) =>
-      val reducer = reducers(operationID)
-      reducer ! WordCountAllProgressQuery(operationID, sender())
+      reducersRouter ! WordCountAllProgressQuery(operationID, sender())
 
     case WordResultQuery(operationID, word) =>
-      val reducer = reducers(operationID)
       val waiterId = s"wait-${operationID.id}"
       val resultWaiter = resultWaiters.getOrElse(operationID, {
         val newResultwaiter = context.actorOf(ResultWaiter.props().withDispatcher(ResultWaitersDispatcherName), waiterId)
         resultWaiters(operationID) = newResultwaiter
         newResultwaiter
       })
-      resultWaiter ! WaitForWordCommand(operationID, word, sender(), reducer)
+      resultWaiter ! WaitForWordCommand(operationID, word, sender(), reducersRouter)
 
     case ResultQuery(operationID) =>
-      val reducer = reducers(operationID)
       val waiterId = s"wait-${operationID.id}"
       val resultWaiter = resultWaiters.getOrElse(operationID, {
         val newResultwaiter = context.actorOf(ResultWaiter.props().withDispatcher(ResultWaitersDispatcherName), waiterId)
         resultWaiters(operationID) = newResultwaiter
         newResultwaiter
       })
-      resultWaiter ! WaitForOperationCommand(operationID, sender(), reducer)
+      resultWaiter ! WaitForOperationCommand(operationID, sender(), reducersRouter)
     // TODO CleanupOperation to reclaim memory in system for completed operations
   }
 }

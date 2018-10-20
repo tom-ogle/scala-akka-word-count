@@ -4,6 +4,7 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
+import akka.routing.ConsistentHashingRouter.ConsistentHashable
 import com.tomogle.akkawordcount.ProgressReport
 import com.tomogle.akkawordcount.ResultReport
 import com.tomogle.akkawordcount.WordCountOperationID
@@ -26,20 +27,32 @@ object WordCountReducer {
   def props(): Props = Props(new WordCountReducer())
 
   // Submits a word to be aggregated
-  final case class ReduceWordCommand(operationId: WordCountOperationID, word: String)
+  final case class ReduceWordCommand(operationId: WordCountOperationID, word: String) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
 
   // Sets the total words we will count for an operation
-  final case class SetTotalWordsCommand(operationId: WordCountOperationID, count: Int)
+  final case class SetTotalWordsCommand(operationId: WordCountOperationID, count: Int) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
 
   // Queries the progress on counts for a given word by operation
-  final case class WordCountWordProgressQuery(operationId: WordCountOperationID, word: String, returnAddress: ActorRef)
+  final case class WordCountWordProgressQuery(operationId: WordCountOperationID, word: String, returnAddress: ActorRef) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
   // Queries the progress on counts for all words by operation
-  final case class WordCountAllProgressQuery(operationId: WordCountOperationID, returnAddress: ActorRef)
+  final case class WordCountAllProgressQuery(operationId: WordCountOperationID, returnAddress: ActorRef) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
 
   // Queries the final counts for a given word by operation
-  final case class ResultsWordIfFinishedQuery(operationId: WordCountOperationID, word: String, returnAddress: ActorRef)
+  final case class ResultsWordIfFinishedQuery(operationId: WordCountOperationID, word: String, returnAddress: ActorRef) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
   // Queries the final counts for a given operation
-  final case class ResultsAllIfFinishedQuery(operationId: WordCountOperationID, returnAddress: ActorRef)
+  final case class ResultsAllIfFinishedQuery(operationId: WordCountOperationID, returnAddress: ActorRef) extends ConsistentHashable {
+    override def consistentHashKey: Any = operationId
+  }
 }
 
 class WordCountReducer() extends Actor with ActorLogging {
